@@ -11,7 +11,6 @@ from keras.layers import MaxPooling2D, Conv2D, Dropout, Flatten, Dense
 from imgaug import augmenters as iaa
 from sklearn.utils import shuffle
 from sklearn.model_selection import train_test_split
-%matplotlib inline
 
 dir_path = "carnd"
 cols = ['center', 'left', 'right', 'steering', 'throttle', 'reverse', 'speed']
@@ -24,13 +23,15 @@ df['center'] = df['center'].apply(get_correct_file_path)
 df['right'] = df['right'].apply(get_correct_file_path)
 df['left'] = df['left'].apply(get_correct_file_path)
 
+total_bins = 21
+hist, bins = np.histogram(df['steering'], total_bins)
 bin_threshold = 200
 remove_ixs = []
 for i in range(total_bins):
     temp_list = []
     for j in range(df.steering.size):
         if df['steering'][j] >= bins[i] and df['steering'][j] <= bins[i+1]:
-        temp_list.append(j)
+            temp_list.append(j)
     # ensure that data is dropped randomly rather than a specific portion of the recording
     temp_list = shuffle(temp_list)
     temp_list = temp_list[bin_threshold:]
@@ -47,8 +48,8 @@ def load_data(df):
         ixs = df.iloc[i]
         center, left, right = ixs[0], ixs[1], ixs[2]
         path.append(imgdir + center.strip())
-        path.append(imgdir + left.strip())
-        path.append(imgdir + right.strip())
+        # path.append(imgdir + left.strip())
+        # path.append(imgdir + right.strip())
         measurement.append(float(ixs[3]))
     paths = np.asarray(path)
     measurements = np.asarray(measurement)
@@ -59,6 +60,24 @@ print(paths.shape, measurements.shape)
 
 X_train, X_valid, y_train, y_valid = train_test_split(paths, measurements, test_size=0.2, random_state=42)
 print(X_train.shape, X_valid.shape)
+
+def preprocess(img):
+
+    # convert to YUV space as Nvidia Model we will use has used the same space
+    img = cv2.cvtColor(cv2.imread(img), cv2.COLOR_BGR2YUV)
+    # slice the unwanted sections from the image
+    img = img[60:135,:,:]
+    # smooth the image using a gaussian kernel: denoise
+    img = cv2.GaussianBlur(img, (3, 3), 0)
+    # reshape to fit the input size of Nvidia Model
+    img = cv2.resize(img, (200, 66))
+    # normalize
+    img = img/255
+
+    return img
+
+X_train = np.array(list(map(preprocess, X_train)))
+X_valid = np.array(list(map(preprocess, X_valid)))
 
 def zoom(img):
     zoomed = iaa.Affine(scale=(1,1.3))
@@ -74,25 +93,8 @@ def alter_brightness(img):
 def augment_data(img):
     img = zoom(img)
 
-def preprocess(img):
-
-    # convert to YUV space as Nvidia Model we will use has used the same space
-    img = cv2.cvtColor(img, cv2.COLOR_BGR2YUV)
-    # slice the unwanted sections from the image
-    img = img[60:135,:,:]
-    # smooth the image using a gaussian kernel: denoise
-    img = cv2.GaussianBlur(img, (3, 3), 0)
-    # reshape to fit the input size of Nvidia Model
-    img = cv2.resize(img, (200, 66))
-    # normalize
-    img = img/255
-
-    return img
-
-X_train = np.array(list(map(preprocess, X_train)))
-X_valid = np.array(list(map(preprocess, X_valid)))
-
 print(X_train.shape, X_valid.shape)
+
 #Model
 def NvidiaModel():
 
@@ -141,7 +143,7 @@ def NvidiaModel():
     return model
 
 model = NvidiaModel()
-# model.summary()
+model.summary()
 
 history = model.fit(X_train, y_train, validation_data=(X_valid, y_valid), epochs=15, batch_size=64, shuffle=1)
-# model.save("model.h5")
+model.save("model.h5")

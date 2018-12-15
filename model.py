@@ -79,19 +79,34 @@ def preprocess(img):
 X_train = np.array(list(map(preprocess, X_train)))
 X_valid = np.array(list(map(preprocess, X_valid)))
 
+# Image augmentation
+# NOTE: Augmentation has not been used in the submission
 def zoom(img):
-    zoomed = iaa.Affine(scale=(1,1.3))
-    return zoomed.augment_image(img)
+  zoomed = iaa.Affine(scale=(1,1.3))
+  return zoomed.augment_image(img)
 
 def pan(img):
-    panned = iaa.Affine(translate_percent={'x': (-0.1,0.1), 'y': (-0.1,0.1)})
-    return panned.augment_image(img)
+  panned = iaa.Affine(translate_percent={'x': (-0.1,0.1), 'y': (-0.1,0.1)})
+  return panned.augment_image(img)
 
 def alter_brightness(img):
-    iaa.Multiply((0.2, 1.2))
+  b = iaa.Multiply((0.2, 1.2))
+  return b.augment_image(img)
 
-def augment_data(img):
+def flip_image(img, steering_ang):
+  img = cv2.flip(img, 1)
+  return img, -steering_ang
+
+def augment_data(img, ang):
+  if np.random.rand() < 0.5:
     img = zoom(img)
+  if np.random.rand() < 0.5:
+    img = pan(img)
+  if np.random.rand() < 0.5:
+    img = alter_brightness(img)
+  if np.random.rand() < 0.5:
+    img = flip_image(img)
+  return img, ang
 
 print(X_train.shape, X_valid.shape)
 
@@ -142,8 +157,27 @@ def NvidiaModel():
     model.compile(loss='mse', optimizer=optimizer)
     return model
 
+# intiialize the model and vie
 model = NvidiaModel()
 model.summary()
 
+# train the model
 history = model.fit(X_train, y_train, validation_data=(X_valid, y_valid), epochs=15, batch_size=64, shuffle=1)
+
+# save the trained model which can be used to run the drive.py file
 model.save("model.h5")
+
+# viewing the plots for accuracy and loss
+# Loss
+plt.plot(history.history['loss']);
+plt.plot(history.history['val_loss']);
+plt.legend(['Training','Validation']);
+plt.title('Loss');
+plt.xlabel('Epoch');
+
+# Accuracy
+plt.plot(history.history['acc']);
+plt.plot(history.history['val_acc']);
+plt.legend(['Training','Validation']);
+plt.title('Accuracy');
+plt.xlabel('Epoch');

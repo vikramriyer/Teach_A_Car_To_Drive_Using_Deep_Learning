@@ -31,6 +31,12 @@ This is the github readme.
 
 ## Steps
 
+### Data Collection
+The Udacity simulator was used in the following fashion
+1. 3 laps recorded in the normal direction
+2. 3 laps recorded in the flipped direction
+3. 1 lap recorded as correction track: This recording has the car driving itself back to the road if it goes off the track
+
 ### Dataset summary
 We have 2 types of files to look at in this dataset
 1. __The driving_log.csv__ <br>
@@ -42,23 +48,32 @@ For the next versions, when I work on the challenge problems, I might use the le
 
 After the thresholding we have,
 
+```python
+X_train, X_valid, y_train, y_valid = train_test_split(paths, measurements, test_size=0.2, random_state=42)
+# paths has the image path on the disk
+# corresponding steering angle measurements of the images in the paths list
+```
+
 |  Total | Train  | Valid |
 |----------|-----------|-----------|
 |1642|1313|329|
 
-### Dataset exploration
+### Dataset exploration and balancing using Thresholds
 
 Let's check how our data was distributed before the thresholding and what is the final statistic of the dataset.
 
-__Before Thresholding__
+__Before Thresholding__ <br>
+There are a lot of entries for steering angle 0
 
 ![](images/hist.png)
 
-__After Thresholding__
+__After Thresholding__ <br>
+We can now see that the distribution looks more normal and should be good to go ahead with the preprocessing step.
 
 ![](images/hist_thresholded.png)
 
-__Statistics of Train and Validation set__
+__Statistics of Train and Validation set__ <br>
+After, splitting the data into train and validation set, here are the distributions for them respectively. The distribution looks identical and hence we are good to go ahead with the preprocessing and training procedure.
 
 ![](images/train_valid_dist.png)
 
@@ -163,9 +178,24 @@ The hyperparameters:
 | LEARNING RATE | 0.001 |
 | BATCH SIZE | 64 |
 
+![](images/train_val_loss_curve.png)
+
+I trained for a few more epochs and did not see a possible improvement in the model and hence used 15 as the number of epochs.
+
 ## Discussion
 ---
 
 ### Potential Shortcomings in the Project 
+1. Failing on the challenge track <br>
+When the same model is used to run the simulator on the challenge track, the model fails and falls off the track. 
+
+2. Possible overfitting <br>
+As mentioned above, the model might be prone to overfitting as it fails terribly on the challenge track. 
 
 ### Possible Improvements
+1. Data Augmentation <br>
+The current train and validation set count is ~1300 and ~300 respectively; a very low number as far as a deep learning model is concerned. We will require a lot of more data and the simplest way can be augmenting the data by using flipping, rotations. etc. This way, the volume of data is increased with some variations added to what the network has to learn to make sure it stays on track.
+2. Recording more data <br>
+It will be useful to record a few laps on the challenge track as well as that might help avoid the overfitting. The model will then generalize better to the challenge track as well and probably to other types of terrians.
+3. Using the other features available (Throttle, Speed, etc) <br>
+We have a single image pipeline where we use the image characteristics as our features. It is a possibility that we use the other features available in the driving_log.csv which can aide our model.

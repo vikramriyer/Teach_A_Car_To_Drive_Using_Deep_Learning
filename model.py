@@ -12,17 +12,24 @@ from imgaug import augmenters as iaa
 from sklearn.utils import shuffle
 from sklearn.model_selection import train_test_split
 
+# read the csv file for preprocessing
 dir_path = "carnd"
 cols = ['center', 'left', 'right', 'steering', 'throttle', 'reverse', 'speed']
 df = pd.read_csv(dir_path + "/driving_log.csv", names=cols, )
 
 def get_correct_file_path(x):
+    '''
+    Converts the file paths by removing the local directory paths that can be
+    used for processing on any workspace
+    '''
     return x.split('/')[-1]
 
 df['center'] = df['center'].apply(get_correct_file_path)
 df['right'] = df['right'].apply(get_correct_file_path)
 df['left'] = df['left'].apply(get_correct_file_path)
 
+# Threshold by 200 images per bin to remove highly biased images belonging to
+# steering angle 0 bins
 total_bins = 21
 hist, bins = np.histogram(df['steering'], total_bins)
 bin_threshold = 200
@@ -40,6 +47,9 @@ print("Before: ", len(df))
 df.drop(df.index[remove_ixs], inplace=True)
 print("After: ", len(df))
 
+# prepare the features and labels
+# paths has the path of each centered image
+# measurements has the corresponding steering angle measurement for the images
 imgdir = 'carnd/IMG/'
 def load_data(df):
     path = []
@@ -58,10 +68,19 @@ def load_data(df):
 paths, measurements = load_data(df)
 print(paths.shape, measurements.shape)
 
+# split the dataset into train and validation set as a measure to reduce overfitting
 X_train, X_valid, y_train, y_valid = train_test_split(paths, measurements, test_size=0.2, random_state=42)
 print(X_train.shape, X_valid.shape)
 
 def preprocess(img):
+    '''
+    Preprocesses the image by
+    - using the YUV channel as used in the Nvidia model
+    - choosing the region of interest
+    - introducing a gaussian smoothing function to denoise the image
+    - resize to fit the Nvidia model 200x66x3 input image shape
+    - normalize
+    '''
 
     # convert to YUV space as Nvidia Model we will use has used the same space
     img = cv2.cvtColor(cv2.imread(img), cv2.COLOR_BGR2YUV)
@@ -80,7 +99,7 @@ X_train = np.array(list(map(preprocess, X_train)))
 X_valid = np.array(list(map(preprocess, X_valid)))
 
 # Image augmentation
-# NOTE: Augmentation has not been used in the submission
+# NOTE: Augmentation has not been used in the submission (v1)
 def zoom(img):
   zoomed = iaa.Affine(scale=(1,1.3))
   return zoomed.augment_image(img)

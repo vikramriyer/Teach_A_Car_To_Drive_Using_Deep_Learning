@@ -116,30 +116,37 @@ img = img/255
 
 ### Model Architecture and Training
 
-Below is the architecture of the Model, a modified version as inspired from LeNet.
+Below is the architecture of the Model, a modified version as inspired from Nvidia Model.
 
 |  Layer  | Output_Shape | Total_Parameters |
 |----------|-----------|-----------
-||||
-||||
-||||
-||||
+|conv2D|31x98x24|5x5x24x3+24=1824|
+|conv2D|14x47x36|5x5x36x24+36=21636|
+|conv2D|5x22x48|5x5x48x36+48=43248|
+|conv2D|3x20x64|3x3x64x48+64=27712|
+|conv2D|1x18x64|3x3x64x64+64=36928|
+|dropout|1x18x64|0|
+|flatten|1152|0|
+|dense|100|1152x100+100=115300|
+|dropout|100|0|
+|dense|50|100x50+50=5050|
+|dense|10|total_params=50x10+10=510|
+|dense|1|total_params=10x1+1=11|
 
-The activation functions:
 
-|  Activation  | Comments |
-|----------|-----------|
-| RELU | Used at the conv layers |
-| SOFTMAX | Used at the last to get the probabilities of the classes |
+The configurations used are:
+
+| Function | Type  | Comments |
+|----------|-----------|----------|
+| RELU | Activation | Used at the conv layers |
+| MSE | Error function | Since this is a regression problem, we use mean squared error to predict the steering angle |
+| ADAM | Optimizer | We use the adam optimizer with a learning rate of 0.001 |
 
 Let's find out in short what each of the layers do: <br>
 **Conv layer** <br>
 We (rather the library) use a kernel or a filter that is a matrix of values and we do simple matrix multiplication and get values that are passed on as inputs to the next layers. This operation finds out certain details about the image like edges, vertices, circles, faces, etc. These kernels are chosen at random by the library and each of these produce some form of results about the features. These kernels are
 
-**Max Pool** <br>
-We simply reduce the dimentionality of the images. This methods uses the knowledge about the fact that the adjacent pixels have almost the similar contribution in terms of view of an image and hence can be removed. There are 2 famous types of pooling methods, namely, max-pooling and average pooling. In our architecture, we use the max-pooling where from a 2x2 matrix, the max value is used to construct a mapping with single pixel value.
-
-**Fully connected layer** <br>
+**Fully connected layer (Dense)** <br>
 The convolutional layers learn some low level features and to make most of the non-linearities, we use the FC layers that perform combinations of these features and find the best of these to use. This process is again done by using back propogation which learns the best of combinations.
 
 **Dropout** <br>
@@ -152,9 +159,9 @@ The hyperparameters:
 
 |  Name  | Value |
 |----------|-----------|
-| EPOCHS |  |
-| LEARNING RATE |  |
-| BATCH SIZE |  |
+| EPOCHS | 15 |
+| LEARNING RATE | 0.001 |
+| BATCH SIZE | 64 |
 
 ## Discussion
 ---
